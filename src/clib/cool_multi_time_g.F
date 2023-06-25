@@ -32,7 +32,8 @@
      &                metPar1, metPar2, metPar3, metPar4, metPar5,
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
-     &                iisrffield, isrf_habing)
+     &                iisrffield, isrf_habing, 
+     &                k22a, k13a, ncrna, ncrd1a, ncrd2a)
 
 !  SOLVE RADIATIVE COOLING/HEATING EQUATIONS
 !
@@ -91,6 +92,8 @@
      &        ciHIa(nratec), ciHeIa(nratec), ciHeISa(nratec), 
      &        ciHeIIa(nratec), reHIIa(nratec), reHeII1a(nratec), 
      &        reHeII2a(nratec), reHeIIIa(nratec), brema(nratec),
+     &        k13a(nratec), k22a(nratec), 
+     &        ncrna(nratec), ncrd1a(nratec), ncrd2a(nratec),
      &        compa, piHI, piHeI, piHeII, comp_xraya, comp_temp,
      &        gammaha, isrf, regra, gamma_isrfa,
      &        avgsighi, avgsighei, avgsigheii,
@@ -112,12 +115,16 @@
      &     metCooling(metDataSize), metHeating(metDataSize)
 
 !  Parameters
+      real*8 mh, pi
 
 !  Locals
 
       integer i, j, k
       integer t, dj, dk
-      real*8 comp1, comp2, energy
+      ! local units
+      real*8 ttmin, dom, energy, comp1, comp2
+      real*8 coolunit, dbase1, tbase1, xbase1, chunit, uvel
+      real*8 h2heatfac(in), H2delta(in), H2dmag, atten, tau
 
 !  Slice locals
  
@@ -136,8 +143,10 @@
      &       reHII(in), reHeII1(in), reHeII2(in), reHeIII(in),
      &       brem(in), cieco(in),
      &       hyd01k(in), h2k01(in), vibh(in), roth(in), rotl(in),
-     &       gpldl(in), gphdl(in), hdlte(in), hdlow(in)
-          
+     &       gpldl(in), gphdl(in), hdlte(in), hdlow(in),
+     &       k22(in), k13(in), ncrn(in), ncrd1(in), ncrd2(in) 
+
+
 !  Iteration mask for multi_cool
 
       logical itmask(in)
@@ -146,6 +155,16 @@
 !=======================================================================
       dk = ke - ks + 1
       dj = je - js + 1
+
+      mh = 1.67262171d-24 
+      dom      = urho*(aye**3)/mh
+      tbase1   = utim
+      xbase1   = uxyz/(aye*uaye)    ! uxyz is [x]*a      = [x]*[a]*a'        '
+      dbase1   = urho*(aye*uaye)**3 ! urho is [dens]/a^3 = [dens]/([a]*a')^3 '
+      coolunit = (uaye**5 * xbase1**2 * mh**2) / (tbase1**3 * dbase1)
+      uvel = (uxyz/aye) / utim
+      chunit   = (1.60218e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 1 eV per H2 formed
+
 
 !     Convert densities from comoving to 'proper'
 
@@ -287,7 +306,8 @@
      &                metPar1, metPar2, metPar3, metPar4, metPar5,
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
-     &                iisrffield, isrf_habing, itmask)
+     &                iisrffield, isrf_habing, itmask,
+     &                k22a, k13a, ncrna, ncrd1a, ncrd2a)
 
 !        Compute the cooling time on the slice
 !          (the gamma used here is the same as used to calculate the pressure

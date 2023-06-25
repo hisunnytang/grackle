@@ -43,7 +43,8 @@
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
      &                iisrffield, isrf_habing,
-     &                itmask)
+     &                itmask,
+     &                k22a, k13a, ncrna, ncrd1a, ncrd2a)
 
 !  SOLVE RADIATIVE COOLING/HEATING EQUATIONS
 !
@@ -101,7 +102,9 @@
      &        reHeII2a(nratec), reHeIIIa(nratec), brema(nratec),
      &        compa, piHI, piHeI, piHeII, comp_xraya, comp_temp,
      &        gammaha, isrf, regra(nratec), gamma_isrfa,
-     &        avgsighi, avgsighei, avgsigheii, k24, k26
+     &        avgsighi, avgsighei, avgsigheii, k24, k26,
+     &        k22a(nratec), k13a(nratec), 
+     &        ncrna(nratec), ncrd1a(nratec), ncrd2a(nratec)
 
 !  Cloudy cooling data
 
@@ -128,6 +131,7 @@
       parameter (ti_max = 20)
 
 !  Locals
+      real*8 chunit, uvel
 
       integer i, iter, ti, iradfield
       real*8 dom, qq, vibl, logtem0, logtem9, dlogtem, zr,
@@ -137,6 +141,7 @@
      &       coolunit, dbase1, tbase1, xbase1,
      &       nH2, nother, nSSh, nratio, nssh_he, nratio_he,
      &       fSShHI, fSShHeI, pe_eps, pe_X, grbeta
+      real*8 h2heatfac(in), H2delta(in), H2dmag, atten
 
 !  Slice locals
  
@@ -156,7 +161,9 @@
      &       gpldl(in), gphdl(in), hdlte(in), hdlow(in),
      &       gaHI(in), gaH2(in), gaHe(in), gaHp(in), gael(in),
      &       h2lte(in), galdl(in), gasgr(in), gasgr_tdust(in),
-     &       regr(in), myisrf(in)
+     &       regr(in), myisrf(in),
+     &       k22(in), k13(in),
+     &       ncrn(in), ncrd1(in), ncrd2(in) 
 
 !  Iteration mask
 
@@ -191,6 +198,9 @@
       zr       = 1._DKIND/(aye*uaye) - 1._DKIND
       fudge    = 1._DKIND
       iradfield = -1
+      
+      uvel = (uxyz/aye) / utim
+      chunit   = (1.60218e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 1 eV per H2 formed
 
 !     Set compton cooling coefficients (and temperature)
 
@@ -466,6 +476,23 @@
 !     --- H2 cooling ---
 
       if (ispecies .gt. 1) then
+        do i = is+1, ie+1
+            if (itmask(i)) then
+            k13(i) = k13a(indixe(i)) +
+     &            (k13a(indixe(i)+1) -k13a(indixe(i)))*tdef(i)
+            k22(i) = k22a(indixe(i)) +
+     &            (k22a(indixe(i)+1) -k22a(indixe(i)))*tdef(i)
+!     H2 formation heating terms.
+
+            ncrn(i) = ncrna(indixe(i)) +
+     &           (ncrna(indixe(i)+1) -ncrna(indixe(i)))*tdef(i)
+            ncrd1(i) = ncrd1a(indixe(i)) +
+     &           (ncrd1a(indixe(i)+1) -ncrd1a(indixe(i)))*tdef(i)
+            ncrd2(i) = ncrd2a(indixe(i)) +
+     &           (ncrd2a(indixe(i)+1) -ncrd2a(indixe(i)))*tdef(i)
+
+            end if
+        end do
 
 #define USE_GLOVER_ABEL2008
 #ifdef USE_GLOVER_ABEL2008
@@ -622,6 +649,32 @@ c            gphdl1 = gphdl(i)/dom
 
 #endif /* USE_GALLI_PALLA1999 */
 #endif /* USE_GLOVER_ABEL2008 */
+
+
+c H2 Formation
+c
+       do i = is+1, ie+1
+       if (itmask(i)) then
+!     Equation 23 from Omukai (2000)
+            h2heatfac(i) = (1._DKIND + (ncrn(i) / (dom *
+     &           (HI(i,j,k) * ncrd1(i) +
+     &           H2I(i,j,k) * 0.5_DKIND * ncrd2(i)))))**(-1._DKIND)
+
+            H2delta(i) = 
+     &          HI(i,j,k) *
+     &           (  4.48_DKIND * k22(i) * HI(i,j,k)**2._DKIND
+     &            - 4.48_DKIND * k13(i) * H2I(i,j,k)/2._DKIND)
+
+            ! We only want to apply this if the formation dominates, but we
+            ! need to apply it outside the delta calculation.
+            if(H2delta(i).gt.0._DKIND) then
+              H2delta(i) = H2delta(i) * h2heatfac(i)
+            endif
+
+            atten = 1._DKIND
+            !edot(i) = edot(i) + chunit * H2delta(i) * atten
+        end if
+        enddo
 
 c     CIE
 c     cooling from H2-H2 and He-H2 collisional induced emission comes

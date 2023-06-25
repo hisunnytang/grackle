@@ -120,9 +120,9 @@ ENTRY(local_dust_to_gas_ratio, DOUBLE, 0.009387)
 /* default to case A rates */
 ENTRY(CaseBRecombination, INT, 0)
 
-ENTRY(NumberOfTemperatureBins, INT, 600)
+ENTRY(NumberOfTemperatureBins, INT, 1024)
 ENTRY(TemperatureStart, DOUBLE, 1.0)
-ENTRY(TemperatureEnd, DOUBLE, 1.0e9)
+ENTRY(TemperatureEnd, DOUBLE, 1.0e8)
 
 ENTRY(NumberOfDustTemperatureBins, INT, 250)
 ENTRY(DustTemperatureStart, DOUBLE, 1.0)
@@ -193,7 +193,7 @@ ENTRY(recombination_cooling_rates, INT, 1) //Recombination cooling
 ENTRY(bremsstrahlung_cooling_rates, INT, 1) //Bremsstrahlung cooling
 
 /* maximum number of subcycle iterations for solve_chemistry */
-ENTRY(max_iterations, INT, 10000)
+ENTRY(max_iterations, INT, 1000000)
 
 /* flag to exit if max iterations exceeded */
 ENTRY(exit_after_iterations_exceeded, INT, FALSE)

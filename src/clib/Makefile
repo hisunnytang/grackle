@@ -33,7 +33,7 @@
 
 SHELL       = /bin/bash
 OUTPUT      = out.compile
-VERBOSE     = 0
+VERBOSE     = 1
 GRACKLE_DIR = .
 DEFAULT_INSTALL_PREFIX = /usr/local
 
@@ -107,6 +107,7 @@ libgrackle.la: $(MODULES) autogen dep $(OBJS_LIB) MACHNOTES
 	     echo "Failed! See $(OUTPUT) for error messages"; \
 	fi ; \
 	else \
+	  echo $(LIBTOOL) --mode=link --tag=CC $(LD) $(LDFLAGS) -o $@ $(OBJS_LIB) $(LIBS) -rpath $(INSTALL_LIB_DIR) -release $(LIB_RELEASE_VERSION) ; \
 	  $(LIBTOOL) --mode=link --tag=CC $(LD) $(LDFLAGS) -o $@ $(OBJS_LIB) $(LIBS) -rpath $(INSTALL_LIB_DIR) -release $(LIB_RELEASE_VERSION) ; \
 	fi)
 	@(if [ $(ASSEMBLE_PRECISION_NUMBER) == "4" ]; then \

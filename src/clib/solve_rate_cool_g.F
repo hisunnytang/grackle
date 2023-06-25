@@ -497,7 +497,9 @@
      &                metPar1, metPar2, metPar3, metPar4, metPar5,
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
-     &                iisrffield, isrf_habing, itmask)
+     &                iisrffield, isrf_habing, itmask,
+     &                k22a, k13a, ncrna, ncrd1a, ncrd2a
+     & )
 
             if (ispecies .gt. 0) then
 
@@ -585,8 +587,8 @@
 !              compute minimum rate timestep
 
                olddtit = dtit(i)
-               dtit(i) = min(abs(0.1_DKIND*de(i,j,k)/dedot(i)), 
-     &              abs(0.1_DKIND*HI(i,j,k)/HIdot(i)),
+               dtit(i) = min(abs(0.01_DKIND*de(i,j,k)/dedot(i)), 
+     &              abs(0.01_DKIND*HI(i,j,k)/HIdot(i)),
      &              dt-ttot(i), 0.5_DKIND*dt)
 
                if (d(i,j,k)*dom .gt. 1e8_DKIND .and. 
@@ -640,6 +642,8 @@
 #endif
                 endif
                 dtit(i) = min(dtit(i), 0.1_DKIND*heq/dheq)
+
+
               endif
               if (iter.gt.10_DKIND) then
                  dtit(i) = min(olddtit*1.5_DKIND, dtit(i))
@@ -649,9 +653,12 @@
 #ifdef WRITE_COOLING_DEBUG
 !              Output some debugging information if required
 
-               if (dtit(i)/dt .lt. 1.0e-2_DKIND .and.
-     &             iter .gt. 800 .and.
-     &             abs((dt-ttot(i))/dt) .gt. 1.0e-3_DKIND) then
+                  !nh = min(HI(i,j,k)*dom, 1.0e9_DKIND)
+!               if (dtit(i)/dt .lt. 1.0e-2_DKIND .and.
+!     &             iter .gt. 800 .and.
+!     &             abs((dt-ttot(i))/dt) .gt. 1.0e-3_DKIND) then
+                if (H2I(i,j,k)*dom .gt. 1.e12_DKIND .and.
+     &              H2I(i,j,k) .gt. HI(i,j,k)) then
 #ifdef _OPENMP
 !$omp critical
 #endif
@@ -682,6 +689,7 @@
 #ifdef _OPENMP
 !$omp end critical
 #endif
+
                endif
  1000          format(i5,3(i3,1x),1p,11(e11.3))
  1100          format(1p,22(e11.3))
@@ -713,7 +721,7 @@
 
 !              Compute timestep for 10% change
 
-                  dtit(i) = min(real(abs(0.1_DKIND*
+                  dtit(i) = min(real(abs(0.01_DKIND*
      &              energy/edot(i)), DKIND), 
      &              dt-ttot(i), dtit(i))
 
@@ -1704,7 +1712,7 @@ c -------------------------------------------------------------------
 !         May/00: there appears to be a problem with the density-dependent
 !             collisional rates.  Currently turned off until further notice.
 
-#define USE_DENSITY_DEPENDENT_H2_DISSOCIATION_RATE
+#define DONT_USE_DENSITY_DEPENDENT_H2_DISSOCIATION_RATE
 #ifdef USE_DENSITY_DEPENDENT_H2_DISSOCIATION_RATE
             if (ispecies .gt. 1 .and. ithreebody .eq. 0) then
                do i = is+1, ie+1
@@ -1888,26 +1896,26 @@ c
 !     H2 formation heating
 
 !     Equation 23 from Omukai (2000)
-            h2heatfac(i) = (1._DKIND + (ncrn(i) / (dom *
-     &           (HI(i,j,k) * ncrd1(i) +
-     &           H2I(i,j,k) * 0.5_DKIND * ncrd2(i)))))**(-1._DKIND)
+!            h2heatfac(i) = (1._DKIND + (ncrn(i) / (dom *
+!     &           (HI(i,j,k) * ncrd1(i) +
+!     &           H2I(i,j,k) * 0.5_DKIND * ncrd2(i)))))**(-1._DKIND)
 
-            H2delta(i) = 
-     &          HI(i,j,k) *
-     &           (  4.48_DKIND * k22(i) * HI(i,j,k)**2._DKIND
-     &            - 4.48_DKIND * k13(i) * H2I(i,j,k)/2._DKIND)
+!            H2delta(i) = 
+!     &          HI(i,j,k) *
+!     &           (  4.48_DKIND * k22(i) * HI(i,j,k)**2._DKIND
+!     &            - 4.48_DKIND * k13(i) * H2I(i,j,k)/2._DKIND)
 
             ! We only want to apply this if the formation dominates, but we
             ! need to apply it outside the delta calculation.
-            if(H2delta(i).gt.0._DKIND) then
-              H2delta(i) = H2delta(i) * h2heatfac(i)
-            endif
+!            if(H2delta(i).gt.0._DKIND) then
+!              H2delta(i) = H2delta(i) * h2heatfac(i)
+!            endif
 
-            if (anydust) then
-               H2delta(i) = H2delta(i) + 
-     &              h2dust(i) * HI(i,j,k) * rhoH(i) * 
-     &              (0.2_DKIND + 4.2_DKIND * h2heatfac(i))
-            endif
+!            if (anydust) then
+!               H2delta(i) = H2delta(i) + 
+!     &              h2dust(i) * HI(i,j,k) * rhoH(i) * 
+!     &              (0.2_DKIND + 4.2_DKIND * h2heatfac(i))
+!            endif
 
 !            H2dmag = abs(H2delta)/(
 !     &          HI(i,j,k)*( k22(i) * HI(i,j,k)**2._DKIND
@@ -1915,8 +1923,8 @@ c
 !            tau = (H2dmag/1e-5_DKIND)**-1.0_DKIND
 !            tau = max(tau, 1.e-5_DKIND)
 !            atten = min((1.-exp(-tau))/tau,1._DKIND)
-            atten = 1._DKIND
-            edot(i) = edot(i) + chunit * H2delta(i) * atten
+!           atten = 1._DKIND
+!            edot(i) = edot(i) + chunit * H2delta(i) * atten
 !     &       + H2I(i,j,k)*( k21(i) * HI(i,j,k)**2.0_DKIND
 !     &                    - k23(i) * H2I(i,j,k))
 !H * (k22 * H^2 - k13 * H_2) + H_2 * (k21 * H^2 - k23 * H_2) */
