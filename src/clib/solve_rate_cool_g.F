@@ -579,10 +579,10 @@
 !                electron or HI fraction which is in equilibrium with high
 !                individual terms (which all nearly cancel).
 
-               if (iter .gt. 50) then
-                  dedot(i) = min(abs(dedot(i)), abs(dedot_prev(i)))
-                  HIdot(i) = min(abs(HIdot(i)), abs(HIdot_prev(i)))
-               endif
+               !if (iter .gt. 10000) then
+               !   dedot(i) = min(abs(dedot(i)), abs(dedot_prev(i)))
+               !   HIdot(i) = min(abs(HIdot(i)), abs(HIdot_prev(i)))
+               !endif
 
 !              compute minimum rate timestep
 
