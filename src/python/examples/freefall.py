@@ -36,7 +36,7 @@ if __name__=="__main__":
     my_chemistry = chemistry_data()
     my_chemistry.use_grackle = 1
     my_chemistry.with_radiative_cooling = 1
-    my_chemistry.primordial_chemistry = 3
+    my_chemistry.primordial_chemistry = 2
     my_chemistry.UVbackground = 0
     my_chemistry.self_shielding_method = 0
     my_chemistry.H2_self_shielding = 0
@@ -45,6 +45,7 @@ if __name__=="__main__":
     my_chemistry.cie_cooling = 1
     my_chemistry.h2_optical_depth_approximation = 1
     my_chemistry.interstellar_radiation_field = 0.
+    my_chemistry.three_body_rate = 4
 
     if os.environ.get("METAL_COOLING", 0) == "1":
         my_chemistry.metal_cooling = int(os.environ["METAL_COOLING"])
@@ -73,7 +74,7 @@ if __name__=="__main__":
     # then begin collapse
     initial_density     = 1.0e-1 * mass_hydrogen_cgs # g / cm^3
     # stopping condition
-    final_density       = 1.e12 * mass_hydrogen_cgs
+    final_density       = 1.e15 * mass_hydrogen_cgs
 
     rval = my_chemistry.initialize()
 
@@ -106,7 +107,7 @@ if __name__=="__main__":
     fc["z-velocity"][:] = 0.0
 
     # timestepping safety factor
-    safety_factor = 0.01
+    safety_factor = 0.001
 
     # let the gas cool at constant density from the starting temperature
     # down to a lower temperature to get the species fractions in a
@@ -118,7 +119,8 @@ if __name__=="__main__":
 
     # evolve density and temperature according to free-fall collapse
     data = evolve_freefall(fc, final_density,
-                           safety_factor=safety_factor)
+                           safety_factor=safety_factor,
+                           include_pressure=False)
 
     # make a plot of rho/f_H2 vs. T
     plots = pyplot.loglog(data["density"], data["temperature"],
