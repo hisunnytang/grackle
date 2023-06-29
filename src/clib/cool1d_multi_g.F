@@ -672,7 +672,7 @@ c
             endif
 
             atten = 1._DKIND
-            !edot(i) = edot(i) + chunit * H2delta(i) * atten
+            edot(i) = edot(i) + chunit * H2delta(i) * atten
         end if
         enddo
 
