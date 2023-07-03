@@ -143,6 +143,9 @@
      &       fSShHI, fSShHeI, pe_eps, pe_X, grbeta
       real*8 h2heatfac(in), H2delta(in), H2dmag, atten
 
+      real*8 dgammaH2dT, dge, dge_dT
+      integer itemp
+
 !  Slice locals
  
       integer*8 indixe(in)
@@ -308,6 +311,8 @@
                   nother = (HeI(i,j,k) + HeII(i,j,k) +
      &                 HeIII(i,j,k))/4._DKIND +
      &                 HI(i,j,k) + HII(i,j,k) + de(i,j,k)
+
+
                   if (nH2/nother .gt. 1.0e-3_DKIND) then
                      x = 6100._DKIND/tgas(i) ! not quite self-consistent
                      if (x .gt. 10._DKIND) then
@@ -323,6 +328,59 @@
      &                 (nH2*gamma2 + nother/(gamma-1._DKIND))
                   tgas(i) = tgas(i) * (gamma2 - 1._DKIND)/
      &                 (gamma - 1._DKIND)
+
+                !!! okay lets make it into an iteration !!!!!
+                !!! Here we are doing newton's iteration !!!!!!
+                !!! e = sum ( n_i k T / (gamma_i - 1) ) !!!!!
+                !!! gamma is a function of T sometimes !!!!
+                !!! we do a fix point iteration 
+                !!! f(T) = e - sum ( n_i k T / (gamma_i - 1)  )
+                !!! T_i+1 = T_i - f(T_i) / dfdT(T_i)
+                !!! with mathematica and some algebra,
+                !!! we can analyticallly get the dfdT term
+                !!! ideally we should iterate it until it converges
+                !!! or T_i+1 - T_i is below some tolerance
+
+                do itemp = 0, 50
+                    x = 6100._DKIND/tgas(i) ! not quite self-consistent
+                    if (x .gt. 10._DKIND) then
+                        gamma2 = 0.5_DKIND*5._DKIND
+                        dgammaH2dT = 0.0_DKIND
+                    else
+                        gamma2 = 0.5_DKIND*(5._DKIND + 2._DKIND *x*x
+     &                            * exp(x)/(exp(x)-1)**2)
+
+                        dgammaH2dT = exp(-x)*(exp(x)-1.0_DKIND)*x *
+     &                       (exp(x)*(x-2.0_DKIND) + x +2.0_DKIND)
+                        dgammaH2dT = dgammaH2dT / (x*x + 5.0_DKIND 
+     &                       *cosh(x) - 5.0_DKIND)**2.0
+                        dgammaH2dT = - dgammaH2dT * x / tgas(i)
+                    endif
+                    
+                    dge = (nother / (gamma - 1._DKIND) + nH2 * gamma2 )*
+     &                      kboltz * tgas(i)  - p2d(i) /
+     &                      (gamma - 1._DKIND)*uvel*uvel * mh 
+                  
+
+                    dge_dT = kboltz * (nother / (gamma -1._DKIND) + nH2*
+     &                      gamma2) - kboltz * tgas(i) 
+     &                      * nH2* gamma2* gamma2* dgammaH2dT
+
+                    tgas(i) = tgas(i) - dge / dge_dT
+
+                enddo
+                
+!                write(0,*) tgas(i), nH2 / d(i,j,k)
+!                if (nH2/nother .gt. 1.0e-4_DKIND) then
+!                    write(0,*) p2d(i)/(gamma-1.)*uvel*uvel*mh, dge, 
+!     &                  dge_dT,
+!     &                  tgas(i),
+!     &                  dgammaH2dT, gamma2, d(i,j,k), nother, nH2
+!                endif
+                
+!            endif
+
+
                end if
             enddo
          endif
@@ -663,13 +721,13 @@ c
             H2delta(i) = 
      &          HI(i,j,k) *
      &           (  4.48_DKIND * k22(i) * HI(i,j,k)**2._DKIND
-     &            - 4.48_DKIND * k13(i) * H2I(i,j,k)/2._DKIND)
+     &            - 4.48_DKIND * k13(i) * H2I(i,j,k) /2._DKIND)
 
             ! We only want to apply this if the formation dominates, but we
             ! need to apply it outside the delta calculation.
-            if(H2delta(i).gt.0._DKIND) then
+            !if(H2delta(i).gt.0._DKIND) then
               H2delta(i) = H2delta(i) * h2heatfac(i)
-            endif
+            !endif
 
             atten = 1._DKIND
             edot(i) = edot(i) + chunit * H2delta(i) * atten
