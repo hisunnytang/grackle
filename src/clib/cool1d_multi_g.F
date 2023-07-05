@@ -1,4 +1,5 @@
 #include "phys_const.def"
+#include "solver_config.def"
 
 !=======================================================================
 !/////////////////////  SUBROUTINE COOL1D_MULTI_G  \\\\\\\\\\\\\\\\\\\\\
@@ -340,7 +341,6 @@
                 !!! we can analyticallly get the dfdT term
                 !!! ideally we should iterate it until it converges
                 !!! or T_i+1 - T_i is below some tolerance
-#define ITERATE_TEMPERATURE
 #ifdef ITERATE_TEMPERATURE
                 do itemp = 0, 100
                     x = 6100._DKIND/tgas(i) ! not quite self-consistent
@@ -366,16 +366,13 @@
                     dge_dT = kboltz * (nother / (gamma -1._DKIND) + nH2*
      &                      gamma2) - kboltz * tgas(i) 
      &                      * nH2* gamma2* gamma2* dgammaH2dT
-                    
-                    
                     tgas(i) = tgas(i) - dge / dge_dT
-                    
                     ! when dTgas is smaller than 0.01 K
                     ! we stop the iteration
                     if (abs(dge/dge_dT) .lt. 1e-2) exit
-                    
 
                 enddo
+                !write(0,*) tgas(i), nH2 / d(i,j,k)
 #endif
                 
 !                write(0,*) tgas(i), nH2 / d(i,j,k)

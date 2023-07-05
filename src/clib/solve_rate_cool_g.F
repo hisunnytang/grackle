@@ -1,5 +1,7 @@
 #include "phys_const.def"
 
+#include "solver_config.def"
+
 !=======================================================================
 !///////////////////  SUBROUTINE SOLVE_RATE_COOL_G  \\\\\\\\\\\\\\\\\\\\\
 
@@ -264,6 +266,9 @@
 
       real*8 mh, pi
       parameter (mh = mass_h, pi = pi_val)
+
+      real*8 SAFETY_FACTOR
+      parameter (SAFETY_FACTOR = safety)
 
 !  Locals
 
@@ -587,9 +592,10 @@
 !              compute minimum rate timestep
 
                olddtit = dtit(i)
-               dtit(i) = min(abs(0.01_DKIND*de(i,j,k)/dedot(i)), 
-     &              abs(0.01_DKIND*HI(i,j,k)/HIdot(i)),
+               dtit(i) = min(abs(SAFETY_FACTOR*de(i,j,k)/dedot(i)), 
+     &              abs(SAFETY_FACTOR*HI(i,j,k)/HIdot(i)),
      &              dt-ttot(i), 0.5_DKIND*dt)
+               !write(0,*) SAFETY_FACTOR
 
                if (d(i,j,k)*dom .gt. 1e8_DKIND .and. 
      &              edot(i) .gt. 0._DKIND      .and.
@@ -721,7 +727,7 @@
 
 !              Compute timestep for 10% change
 
-                  dtit(i) = min(real(abs(0.01_DKIND*
+                  dtit(i) = min(real(abs(SAFETY_FACTOR*
      &              energy/edot(i)), DKIND), 
      &              dt-ttot(i), dtit(i))
 
